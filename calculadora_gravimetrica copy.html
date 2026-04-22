@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Gravimétrica</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --surface2: #1a2233; --border: #2a3a52;
+    --accent: #00d4ff; --accent2: #7c3aed; --accent3: #f59e0b;
+    --text: #e2e8f0; --text-muted: #64748b; --success: #10b981;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .wrapper { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+
+  header { text-align: center; margin-bottom: 2.5rem; }
+  .logo-badge { display: inline-flex; align-items: center; gap: .5rem; background: linear-gradient(135deg,var(--accent2),var(--accent)); padding: .35rem 1rem; border-radius: 99px; font-size: .7rem; font-family: 'Space Mono',monospace; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 1rem; }
+  h1 { font-size: clamp(1.8rem,4vw,3rem); font-weight: 800; line-height: 1.1; background: linear-gradient(135deg,#fff 30%,var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  header p { color: var(--text-muted); margin-top: .5rem; font-size: .95rem; }
+
+  .prog-bar { height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 2rem; }
+  .prog-fill { height: 100%; background: linear-gradient(90deg,var(--accent2),var(--accent)); border-radius: 4px; transition: width .4s ease; }
+
+  .steps-nav { display: flex; align-items: center; justify-content: center; gap: .5rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+  .step-dot { display: flex; align-items: center; gap: .4rem; font-size: .73rem; font-family: 'Space Mono',monospace; color: var(--text-muted); transition: color .3s; }
+  .step-dot.active { color: var(--accent); }
+  .step-dot.done { color: var(--success); }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .7rem; transition: background .3s; }
+  .step-dot.active .step-num { background: var(--accent); border-color: var(--accent); color: #000; }
+  .step-dot.done .step-num { background: var(--success); border-color: var(--success); color: #fff; }
+  .step-connector { width: 22px; height: 2px; background: var(--border); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 40px rgba(0,0,0,.4); }
+  .card-title { font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; gap: .5rem; }
+  .card-title::before { content: ''; width: 4px; height: 20px; background: linear-gradient(var(--accent),var(--accent2)); border-radius: 4px; }
+
+  label { display: block; font-size: .78rem; font-family: 'Space Mono',monospace; color: var(--text-muted); margin-bottom: .4rem; text-transform: uppercase; letter-spacing: .05em; }
+  input[type=text], input[type=number], select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Space Mono',monospace; font-size: .9rem; padding: .65rem 1rem; transition: border-color .2s,box-shadow .2s; outline: none; }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,.15); }
+  .field-group { margin-bottom: 1.2rem; }
+  .hint { font-size: .78rem; color: var(--text-muted); margin-top: .3rem; font-family: 'Space Mono',monospace; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media(max-width:600px) { .grid2,.grid3 { grid-template-columns: 1fr; } }
+
+  .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.8rem; border-radius: 8px; font-family: 'Syne',sans-serif; font-weight: 700; font-size: .9rem; cursor: pointer; border: none; transition: transform .15s,box-shadow .2s; }
+  .btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { cursor: not-allowed; }
+  .btn-primary { background: linear-gradient(135deg,var(--accent2),var(--accent)); color: #fff; box-shadow: 0 4px 20px rgba(0,212,255,.25); }
+  .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+  .btn-success { background: linear-gradient(135deg,#059669,#10b981); color: #fff; box-shadow: 0 4px 20px rgba(16,185,129,.25); }
+  .btn-group { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+
+  .step-panel { display: none; }
+  .step-panel.active { display: block; animation: fadeIn .35s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: none; } }
+
+  /* GRAVIMETER SELECTOR */
+  .grav-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  @media(max-width:500px) { .grav-grid { grid-template-columns: 1fr; } }
+  .grav-card { border: 2px solid var(--border); border-radius: 12px; padding: 1.6rem 1rem; text-align: center; cursor: pointer; transition: border-color .2s,transform .15s,background .2s; background: var(--surface2); }
+  .grav-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .grav-card.selected { border-color: var(--accent); background: rgba(0,212,255,.08); box-shadow: 0 0 0 3px rgba(0,212,255,.15); }
+  .grav-icon { font-size: 2.4rem; margin-bottom: .6rem; }
+  .grav-name { font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+  .grav-desc { font-size: .72rem; font-family: 'Space Mono',monospace; color: var(--text-muted); margin-top: .4rem; line-height: 1.5; }
+
+  /* INFO BOX */
+  .info-box { background: rgba(0,212,255,.07); border: 1px solid rgba(0,212,255,.25); border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; font-size: .85rem; line-height: 1.6; }
+  .info-box strong { color: var(--accent3); }
+  .mono { font-family: 'Space Mono',monospace; color: var(--accent); font-size: .82rem; }
+
+  /* DATA TABLE */
+  .table-scroll { overflow-x: auto; }
+  table.data-input { border-collapse: collapse; width: 100%; min-width: 380px; }
+  table.data-input th { background: var(--surface2); border: 1px solid var(--border); padding: .5rem .7rem; font-size: .75rem; font-family: 'Space Mono',monospace; color: var(--accent); text-align: center; white-space: nowrap; }
+  table.data-input td { border: 1px solid var(--border); padding: .2rem .25rem; }
+  table.data-input td.row-label { text-align: center; padding: .4rem .7rem; font-size: .75rem; color: var(--text-muted); font-family: 'Space Mono',monospace; }
+  table.data-input td input { border: none; background: transparent; width: 100%; min-width: 90px; padding: .45rem .5rem; text-align: center; font-size: .88rem; font-family: 'Space Mono',monospace; color: var(--text); }
+  table.data-input td input:focus { background: rgba(0,212,255,.08); box-shadow: inset 0 0 0 2px var(--accent); border-radius: 4px; outline: none; }
+
+  /* SECTION LABEL */
+  .section-label { font-size: .7rem; font-family: 'Space Mono',monospace; text-transform: uppercase; letter-spacing: .12em; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: .4rem; margin: 1.5rem 0 1rem; }
+
+  /* LOOKUP PREVIEW */
+  .lookup-preview { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 1rem; }
+  .lookup-header { background: rgba(0,212,255,.1); padding: .65rem 1rem; font-size: .75rem; font-family: 'Space Mono',monospace; color: var(--accent); }
+  table.lookup-tbl { border-collapse: collapse; width: 100%; min-width: 320px; }
+  table.lookup-tbl th { background: var(--surface2); padding: .4rem .9rem; font-size: .72rem; font-family: 'Space Mono',monospace; color: var(--text-muted); text-align: center; border-bottom: 1px solid var(--border); }
+  table.lookup-tbl td { padding: .38rem .9rem; font-size: .8rem; font-family: 'Space Mono',monospace; text-align: center; border-bottom: 1px solid rgba(255,255,255,.04); }
+  table.lookup-tbl tr.hl td { background: rgba(0,212,255,.15); color: var(--accent); font-weight: 700; }
+
+  /* RESULT TABLE */
+  .result-wrapper { overflow-x: auto; }
+  table.result-table { border-collapse: collapse; width: 100%; min-width: 500px; font-size: .82rem; }
+  table.result-table th { background: #1e2a3d; border: 1px solid var(--border); padding: .55rem 1rem; text-align: center; font-family: 'Space Mono',monospace; color: var(--accent); white-space: nowrap; }
+  table.result-table td { border: 1px solid var(--border); padding: .5rem .9rem; text-align: center; font-family: 'Space Mono',monospace; }
+  table.result-table .row-header { font-weight: 700; text-align: left; white-space: nowrap; padding-left: 1rem; }
+  table.result-table .row-dato td { background: rgba(255,255,255,.02); }
+  table.result-table .row-sep td { height: 10px; background: transparent; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-top: none; border-bottom: none; }
+  table.result-table .row-media td { background: rgba(14,116,144,.25); color: #67e8f9; }
+  table.result-table .row-cen td { background: rgba(22,101,52,.25); color: #6ee7b7; }
+  table.result-table .row-ref td { background: rgba(107,33,168,.25); color: #d8b4fe; }
+  table.result-table .row-res td { background: rgba(154,52,18,.25); color: #fdba74; }
+  table.result-table .row-sup td { background: rgba(120,53,15,.25); color: #fcd34d; }
+  table.result-table .row-lec td { background: rgba(30,58,95,.35); color: #93c5fd; }
+  table.result-table .row-gob td { background: rgba(153,27,27,.35); color: #fca5a5; font-weight: 700; }
+
+  /* PARAMS BAR */
+  .params-bar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.2rem; }
+  .param-chip { display: inline-flex; align-items: center; gap: .4rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: .35rem .75rem; font-family: 'Space Mono',monospace; font-size: .75rem; }
+  .param-chip span { color: var(--accent3); font-weight: 700; }
+
+  @media(max-width:480px) { .card { padding: 1.2rem; } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <p style="font-size:.75rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem;">Geodesia Física GR 62</p>
+    <div class="logo-badge">⚖ Sistema Gravimétrico</div>
+    <h1>Calculadora<br>Gravimétrica</h1>
+    <p style="font-weight:700;color:#ff4444;">Oscar Manuel Uribe Rincon - 20211025063 - List 5</p>
+    <p style="font-size:.85rem;color:var(--accent);margin-top:.2rem;">Universidad Distrital Francisco José de Caldas</p>
+    <p style="font-size:.8rem;color:var(--text-muted);">Ingeniería Catastral y Geodesia</p>
+    <p style="margin-top:.8rem;">Consulta automática de tablas G-043 · G-069 · G-673</p>
+  </header>
+
+  <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:20%"></div></div>
+
+  <div class="steps-nav">
+    <div class="step-dot active" id="sdot1"><div class="step-num">1</div><span>Gravímetro</span></div>
+    <div class="step-connector"></div>
+    <div class="step-dot" id="sdot2"><div class="step-num">2</div><span>Estructura</span></div>
+    <div class="step-connector"></div>
+    <div class="step-dot" id="sdot3"><div class="step-num">3</div><span>Datos</span></div>
+    <div class="step-connector"></div>
+    <div class="step-dot" id="sdot4"><div class="step-num">4</div><span>Constantes</span></div>
+    <div class="step-connector"></div>
+    <div class="step-dot" id="sdot5"><div class="step-num">5</div><span>Resultado</span></div>
+  </div>
+
+  <!-- ══ PASO 1 ══ -->
+  <div class="step-panel active" id="step1">
+    <div class="card">
+      <div class="card-title">Paso 1 — Seleccionar modelo de gravímetro</div>
+      <p class="hint" style="margin-bottom:1.5rem">
+        El sistema consultará automáticamente la tabla del instrumento para obtener
+        <strong style="color:var(--accent3)">referentII</strong> y <strong style="color:var(--accent3)">factor de intervalo</strong>
+        según la centena inferior (cenmenorI) calculada de cada columna.
+      </p>
+      <div class="grav-grid">
+        <div class="grav-card" id="gc-g043" onclick="selectGrav('g043')">
+          <div class="grav-icon">1</div>
+          <div class="grav-name">G-043</div>
+          <div class="grav-desc">Factor base ≈ 1.04600<br>Rango 0 – 7000</div>
+        </div>
+        <div class="grav-card" id="gc-g069" onclick="selectGrav('g069')">
+          <div class="grav-icon">2</div>
+          <div class="grav-name">G-069</div>
+          <div class="grav-desc">Factor base ≈ 1.02935<br>Rango 0 – 7000</div>
+        </div>
+        <div class="grav-card" id="gc-g673" onclick="selectGrav('g673')">
+          <div class="grav-icon">3</div>
+          <div class="grav-name">G-673</div>
+          <div class="grav-desc">Factor base ≈ 1.02235<br>Rango 0 – 7000</div>
+        </div>
+      </div>
+      <div id="gravBox" class="info-box" style="display:none"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btnStep1" onclick="goStep2()" disabled style="opacity:.4">
+          Continuar → Estructura de tabla
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PASO 2 ══ -->
+  <div class="step-panel" id="step2">
+    <div class="card">
+      <div class="card-title">Paso 2 — Definir estructura de la tabla</div>
+      <div class="grid2">
+        <div class="field-group">
+          <label>Número de columnas (1–10)</label>
+          <input type="number" id="numCols" min="1" max="10" value="3">
+          <p class="hint">Variables / estaciones de medición</p>
+        </div>
+        <div class="field-group">
+          <label>Filas de datos capturados (1–10)</label>
+          <input type="number" id="numRows" min="1" max="10" value="4">
+          <p class="hint">Lecturas por columna</p>
+        </div>
+      </div>
+      <div class="section-label">Nombres de encabezados de columna</div>
+      <div class="grid3" id="headersGrid"></div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="goStep(1)">← Volver</button>
+        <button class="btn btn-primary" onclick="goStep3()">Continuar → Ingresar datos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PASO 3 ══ -->
+  <div class="step-panel" id="step3">
+    <div class="card">
+      <div class="card-title">Paso 3 — Ingresar mediciones</div>
+      <div class="info-box">
+        Gravímetro: <strong id="gravLabel3"></strong> &nbsp;·&nbsp;
+        <span class="mono">referentII</span> y <span class="mono">factor de intervalo</span>
+        se consultarán automáticamente en la tabla del instrumento.
+      </div>
+      <div class="table-scroll" id="dataTableContainer"></div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="goStep(2)">← Volver</button>
+        <button class="btn btn-primary" onclick="goStep4()">Continuar → Constantes globales</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PASO 4 ══ -->
+  <div class="step-panel" id="step4">
+    <div class="card">
+      <div class="card-title">Paso 4 — Constantes globales</div>
+      <p class="hint" style="margin-bottom:1.2rem">
+        Estos valores aplican a todas las columnas para el cálculo de <strong style="color:var(--accent3)">gobs</strong>.
+      </p>
+      <div class="grid2">
+        <div class="field-group">
+          <label>ger — constante gravimétrica</label>
+          <input type="number" id="gerVal" step="any" placeholder="Ej: 980620.00">
+        </div>
+        <div class="field-group">
+          <label>referencia — valor de referencia</label>
+          <input type="number" id="refVal" step="any" placeholder="Ej: 0.00">
+        </div>
+      </div>
+      <div class="section-label">Vista previa — consulta automática de tabla <span id="gravLabelPreview"></span></div>
+      <div id="lookupPreview"></div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="goStep(3)">← Volver</button>
+        <button class="btn btn-success" onclick="calcular()">⚡ Calcular resultados</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PASO 5 ══ -->
+  <div class="step-panel" id="step5">
+    <div class="card">
+      <div class="card-title">Paso 5 — Tabla de resultados</div>
+      <div class="params-bar" id="paramsSummary"></div>
+      <div class="result-wrapper" id="resultContainer"></div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="goStep(4)">← Editar constantes</button>
+        <button class="btn btn-primary" onclick="reiniciar()">↺ Nueva tabla</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+// ══════════════ TABLAS ══════════════
+const TABLAS = {
+  g043: [[0,0.00,1.04600],[100,104.60,1.04580],[200,209.18,1.04560],[300,313.74,1.04535],[400,418.28,1.04510],[500,522.79,1.04470],[600,627.26,1.04455],[700,731.71,1.04465],[800,836.18,1.04530],[900,940.71,1.04525],[1000,1045.23,1.04520],[1100,1149.75,1.04515],[1200,1254.27,1.04515],[1300,1358.78,1.04515],[1400,1463.29,1.04525],[1500,1567.82,1.04535],[1600,1672.35,1.04545],[1700,1776.90,1.04550],[1800,1881.45,1.04555],[1900,1986.00,1.04560],[2000,2090.56,1.04560],[2100,2195.12,1.04565],[2200,2299.69,1.04575],[2300,2404.26,1.04580],[2400,2508.84,1.04585],[2500,2613.43,1.04590],[2600,2718.02,1.04600],[2700,2822.61,1.04605],[2800,2927.22,1.04615],[2900,3031.83,1.04625],[3000,3136.46,1.04635],[3100,3241.10,1.04650],[3200,3345.75,1.04660],[3300,3450.41,1.04670],[3400,3555.08,1.04685],[3500,3659.76,1.04695],[3600,3764.45,1.04700],[3700,3869.15,1.04710],[3800,3973.86,1.04715],[3900,4078.58,1.04725],[4000,4183.30,1.04725],[4100,4288.03,1.04725],[4200,4392.75,1.04715],[4300,4497.47,1.04715],[4400,4602.19,1.04720],[4500,4706.90,1.04735],[4600,4811.64,1.04765],[4700,4916.40,1.04775],[4800,5021.18,1.04780],[4900,5125.96,1.04780],[5000,5230.74,1.04770],[5100,5335.51,1.04765],[5200,5440.28,1.04760],[5300,5545.04,1.04760],[5400,5649.80,1.04760],[5500,5754.56,1.04770],[5600,5859.33,1.04780],[5700,5964.11,1.04780],[5800,6068.89,1.04780],[5900,6173.67,1.04775],[6000,6278.45,1.04775],[6100,6383.22,1.04765],[6200,6487.99,1.04760],[6300,6592.75,1.04745],[6400,6697.49,1.04725],[6500,6802.22,1.04705],[6600,6906.92,1.04680],[6700,7011.60,1.04655],[6800,7116.26,1.04625],[6900,7220.88,1.04600],[7000,7325.48,1.04600]],
+  g069: [[0,0.00,1.02935],[100,102.94,1.02932],[200,205.87,1.02930],[300,308.80,1.02927],[400,411.72,1.02925],[500,514.65,1.02925],[600,617.57,1.02923],[700,720.50,1.02921],[800,823.42,1.02922],[900,926.34,1.02922],[1000,1029.26,1.02923],[1100,1132.19,1.02925],[1200,1235.11,1.02928],[1300,1338.04,1.02933],[1400,1440.97,1.02938],[1500,1543.91,1.02945],[1600,1646.85,1.02956],[1700,1749.81,1.02971],[1800,1852.78,1.02985],[1900,1955.77,1.02996],[2000,2058.76,1.03000],[2100,2161.76,1.03001],[2200,2264.76,1.03005],[2300,2367.77,1.03012],[2400,2470.78,1.03024],[2500,2573.80,1.03039],[2600,2676.84,1.03057],[2700,2779.90,1.03079],[2800,2882.98,1.03105],[2900,2986.08,1.03127],[3000,3089.21,1.03143],[3100,3192.35,1.03153],[3200,3295.51,1.03163],[3300,3398.67,1.03170],[3400,3501.84,1.03177],[3500,3605.02,1.03180],[3600,3708.20,1.03185],[3700,3811.38,1.03207],[3800,3914.59,1.03233],[3900,4017.82,1.03254],[4000,4121.08,1.03272],[4100,4224.35,1.03284],[4200,4327.63,1.03294],[4300,4430.93,1.03302],[4400,4534.23,1.03307],[4500,4637.53,1.03307],[4600,4740.84,1.03307],[4700,4844.15,1.03313],[4800,4947.46,1.03323],[4900,5050.78,1.03339],[5000,5154.12,1.03350],[5100,5257.47,1.03357],[5200,5360.83,1.03359],[5300,5464.19,1.03357],[5400,5567.55,1.03353],[5500,5670.90,1.03345],[5600,5774.24,1.03334],[5700,5877.58,1.03319],[5800,5980.90,1.03307],[5900,6084.20,1.03302],[6000,6187.51,1.03299],[6100,6290.81,1.03290],[6200,6394.10,1.03277],[6300,6497.37,1.03261],[6400,6600.63,1.03242],[6500,6703.88,1.03220],[6600,6807.10,1.03197],[6700,6910.29,1.03170],[6800,7013.46,1.03140],[6900,7116.60,1.03110],[7000,7219.71,1.03110]],
+  g673: [[0,0.00,1.02235],[100,102.24,1.02208],[200,204.44,1.02186],[300,306.68,1.02167],[400,408.80,1.02147],[500,510.94,1.02129],[600,613.97,1.02112],[700,715.12,1.02098],[800,817.22,1.02084],[900,919.37,1.02070],[1000,1021.44,1.02056],[1100,1123.49,1.02044],[1200,1225.54,1.02035],[1300,1327.57,1.02022],[1400,1429.60,1.02024],[1500,1531.62,1.02020],[1600,1633.64,1.02018],[1700,1735.66,1.02017],[1800,1837.68,1.02017],[1900,1939.70,1.02017],[2000,2041.71,1.02018],[2100,2143.73,1.02018],[2200,2245.75,1.02017],[2300,2347.77,1.02018],[2400,2449.76,1.02020],[2500,2555.18,1.02022],[2600,2653.83,1.02027],[2700,2755.85,1.02031],[2800,2857.88,1.02037],[2900,2959.92,1.02042],[3000,3061.06,1.02050],[3100,3164.01,1.02057],[3200,3266.07,1.02065],[3300,3368.13,1.02072],[3400,3470.21,1.02078],[3500,3572.28,1.02085],[3600,3674.37,1.02092],[3700,3776.46,1.02101],[3800,3878.56,1.02107],[3900,3980.67,1.02113],[4000,4082.78,1.02119],[4100,4184.90,1.02124],[4200,4287.03,1.02129],[4300,4389.15,1.02136],[4400,4491.29,1.02141],[4500,4593.43,1.02145],[4600,4695.58,1.02143],[4700,4797.72,1.02152],[4800,4899.88,1.02153],[4900,5002.03,1.02154],[5000,5104.18,1.02156],[5100,5206.34,1.02156],[5200,5308.50,1.02154],[5300,5410.65,1.02152],[5400,5512.80,1.02149],[5500,5614.95,1.02147],[5600,5717.10,1.02142],[5700,5819.24,1.02137],[5800,5921.38,1.02137],[5900,6023.51,1.02129],[6000,6125.63,1.02122],[6100,6227.74,1.02113],[6200,6329.84,1.02093],[6300,6431.93,1.02090],[6400,6534.01,1.02077],[6500,6636.07,1.02063],[6600,6738.12,1.02048],[6700,6840.15,1.02032],[6800,6942.17,1.02017],[6900,7044.17,1.02000],[7000,7146.15,1.01988]]
+};
+const GRAV_LABELS = { g043:'G-043', g069:'G-069', g673:'G-673' };
+
+let S = { grav:null, nCols:3, nRows:4, headers:[], data:[], ger:0, ref:0 };
+let step = 1;
+
+function goStep(n) {
+  document.getElementById('step'+step).classList.remove('active');
+  document.getElementById('sdot'+step).classList.remove('active');
+  document.getElementById('sdot'+step).classList.add('done');
+  step = n;
+  document.getElementById('step'+n).classList.add('active');
+  document.getElementById('sdot'+n).classList.remove('done');
+  document.getElementById('sdot'+n).classList.add('active');
+  document.getElementById('progFill').style.width = (n*20)+'%';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function lookup(gravKey, cen) {
+  const t = TABLAS[gravKey];
+  const row = t.find(r => r[0] === cen);
+  if (row) return {referent:row[1], factor:row[2]};
+  const below = t.filter(r => r[0] <= cen).sort((a,b)=>b[0]-a[0]);
+  return below.length ? {referent:below[0][1],factor:below[0][2]} : {referent:t[0][1],factor:t[0][2]};
+}
+
+function cenmenor(v) { return Math.floor(v/100)*100; }
+
+function colMedia(c) {
+  const vals = S.data.map(r=>r[c]).filter(v=>v!==null&&!isNaN(v)).map(Number);
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+}
+
+// PASO 1
+function selectGrav(k) {
+  S.grav = k;
+  document.querySelectorAll('.grav-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('gc-'+k).classList.add('selected');
+  const b = document.getElementById('gravBox');
+  b.style.display = 'block';
+  b.innerHTML = `✔ Seleccionado: <strong>${GRAV_LABELS[k]}</strong> — Los parámetros <span class="mono">referentII</span> y <span class="mono">factor de intervalo</span> se obtendrán automáticamente de la tabla del instrumento según la <span class="mono">cenmenorI</span> calculada.`;
+  const btn = document.getElementById('btnStep1');
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+function goStep2() {
+  buildHeaders();
+  goStep(2);
+}
+
+function buildHeaders() {
+  const n = Math.min(10,Math.max(1,parseInt(document.getElementById('numCols').value)||3));
+  let h = '';
+  for(let i=0;i<n;i++){
+    const v = S.headers[i]||`Columna ${i+1}`;
+    h += `<div class="field-group"><label>Col ${i+1}</label><input type="text" id="hdr${i}" value="${v}" placeholder="Nombre columna ${i+1}"></div>`;
+  }
+  document.getElementById('headersGrid').innerHTML = h;
+}
+document.getElementById('numCols').addEventListener('input', buildHeaders);
+
+// PASO 3
+function goStep3() {
+  S.nCols = Math.min(10,Math.max(1,parseInt(document.getElementById('numCols').value)||3));
+  S.nRows = Math.min(10,Math.max(1,parseInt(document.getElementById('numRows').value)||4));
+  S.headers = [];
+  for(let i=0;i<S.nCols;i++){
+    const el = document.getElementById('hdr'+i);
+    S.headers.push(el?el.value.trim()||`Col ${i+1}`:`Col ${i+1}`);
+  }
+  document.getElementById('gravLabel3').textContent = GRAV_LABELS[S.grav];
+  let t = `<table class="data-input"><thead><tr><th>#</th>`;
+  for(let c=0;c<S.nCols;c++) t += `<th>${S.headers[c]}</th>`;
+  t += `</tr></thead><tbody>`;
+  for(let r=0;r<S.nRows;r++){
+    t += `<tr><td class="row-label">D${r+1}</td>`;
+    for(let c=0;c<S.nCols;c++){
+      const prev = S.data[r]&&S.data[r][c]!==undefined?S.data[r][c]:'';
+      t += `<td><input type="number" step="any" id="c${r}_${c}" value="${prev}" placeholder="0.00"></td>`;
+    }
+    t += `</tr>`;
+  }
+  t += `</tbody></table>`;
+  document.getElementById('dataTableContainer').innerHTML = t;
+  goStep(3);
+}
+
+// PASO 4
+function goStep4() {
+  S.data = [];
+  for(let r=0;r<S.nRows;r++){
+    S.data[r]=[];
+    for(let c=0;c<S.nCols;c++){
+      const el = document.getElementById(`c${r}_${c}`);
+      S.data[r][c] = el&&el.value!==''?parseFloat(el.value):null;
+    }
+  }
+  // Build lookup preview
+  document.getElementById('gravLabelPreview').textContent = GRAV_LABELS[S.grav];
+  let html = '';
+  for(let c=0;c<S.nCols;c++){
+    const med = colMedia(c);
+    if(med===null){ html+=`<p class="hint">⚠ ${S.headers[c]}: sin datos.</p>`; continue; }
+    const cen = cenmenor(med);
+    const lk = lookup(S.grav, cen);
+    const tbl = TABLAS[S.grav];
+    const idx = tbl.findIndex(r=>r[0]===cen);
+    const s = Math.max(0,idx-2), e = Math.min(tbl.length-1,idx+2);
+    html += `<div class="lookup-preview">
+      <div class="lookup-header">
+        📌 <strong>${S.headers[c]}</strong> &nbsp;·&nbsp; media = ${fmt(med,4)} &nbsp;→&nbsp; cenmenorI = <strong>${cen}</strong>
+        &nbsp;→&nbsp; referentII = <strong>${lk.referent.toFixed(2)}</strong> &nbsp;·&nbsp; factor = <strong>${lk.factor.toFixed(5)}</strong>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="lookup-tbl"><thead><tr><th>cenmenorI</th><th>referentII</th><th>factor de intervalo</th></tr></thead><tbody>`;
+    for(let i=s;i<=e;i++){
+      const row=tbl[i]; const hl=row[0]===cen;
+      html+=`<tr${hl?' class="hl"':''}><td>${row[0]}</td><td>${row[1].toFixed(2)}</td><td>${row[2].toFixed(5)}</td></tr>`;
+    }
+    html+=`</tbody></table></div></div>`;
+  }
+  document.getElementById('lookupPreview').innerHTML = html;
+  goStep(4);
+}
+
+// CÁLCULO
+function calcular() {
+  const ger = parseFloat(document.getElementById('gerVal').value)||0;
+  const refG = parseFloat(document.getElementById('refVal').value)||0;
+  S.ger=ger; S.ref=refG;
+
+  const cols = [];
+  for(let c=0;c<S.nCols;c++){
+    const med=colMedia(c);
+    const cen=med!==null?cenmenor(med):null;
+    const lk=cen!==null?lookup(S.grav,cen):{referent:null,factor:null};
+    const residual=(med!==null&&cen!==null)?med-cen:null;
+    const superficie=(residual!==null&&lk.factor!==null)?residual*lk.factor:null;
+    const lecminigl=(lk.referent!==null&&superficie!==null)?lk.referent+superficie:null;
+    const gobs=lecminigl!==null?ger+(refG-lecminigl):null;
+    cols.push({media:med,cen,ref2:lk.referent,factor:lk.factor,residual,superficie,lecminigl,gobs});
+  }
+
+  // Chips resumen
+  let chips = `<div class="param-chip">Gravímetro <span>${GRAV_LABELS[S.grav]}</span></div>
+    <div class="param-chip">ger <span>${fmt(ger,4)}</span></div>
+    <div class="param-chip">referencia <span>${fmt(refG,4)}</span></div>`;
+  cols.forEach((col,i)=>{ chips+=`<div class="param-chip">${S.headers[i]} · ref2 <span>${fmt(col.ref2,2)}</span> · factor <span>${fmt(col.factor,5)}</span></div>`; });
+  document.getElementById('paramsSummary').innerHTML = chips;
+
+  const ROWS = [
+    {k:'media',      l:'📊 media',        cl:'row-media', d:4},
+    {k:'cen',        l:'▼ cenmenorI',      cl:'row-cen',   d:0},
+    {k:'ref2',       l:'📋 referentII',    cl:'row-ref',   d:2},
+    {k:'residual',   l:'△ residual',       cl:'row-res',   d:6},
+    {k:'superficie', l:'⬛ superficieIII', cl:'row-sup',   d:6},
+    {k:'lecminigl',  l:'📐 lecminigl',     cl:'row-lec',   d:6},
+    {k:'gobs',       l:'🎯 gobs',           cl:'row-gob',   d:6},
+  ];
+
+  let t = `<table class="result-table"><thead><tr><th>Parámetro</th>`;
+  for(let c=0;c<S.nCols;c++) t+=`<th>${S.headers[c]}</th>`;
+  t+=`</tr></thead><tbody>`;
+
+  for(let r=0;r<S.nRows;r++){
+    t+=`<tr class="row-dato"><td class="row-header">Dato ${r+1}</td>`;
+    for(let c=0;c<S.nCols;c++){
+      const v=S.data[r][c];
+      t+=`<td>${v!==null&&!isNaN(v)?fmt(v,4):'—'}</td>`;
+    }
+    t+=`</tr>`;
+  }
+  t+=`<tr class="row-sep"><td colspan="${S.nCols+1}"></td></tr>`;
+  for(const row of ROWS){
+    t+=`<tr class="${row.cl}"><td class="row-header">${row.l}</td>`;
+    for(let c=0;c<S.nCols;c++){
+      const v=cols[c][row.k];
+      t+=`<td>${v!==null&&!isNaN(v)?fmt(v,row.d):'—'}</td>`;
+    }
+    t+=`</tr>`;
+  }
+  t+=`</tbody></table>`;
+  document.getElementById('resultContainer').innerHTML = t;
+  goStep(5);
+}
+
+function fmt(v,d=4){
+  if(v===null||v===undefined||isNaN(v)) return '—';
+  return Number(v).toFixed(d);
+}
+
+function reiniciar(){
+  S={grav:null,nCols:3,nRows:4,headers:[],data:[],ger:0,ref:0};
+  for(let i=1;i<=5;i++){
+    document.getElementById('step'+i).classList.remove('active');
+    document.getElementById('sdot'+i).classList.remove('active','done');
+  }
+  step=1;
+  document.getElementById('step1').classList.add('active');
+  document.getElementById('sdot1').classList.add('active');
+  document.getElementById('progFill').style.width='20%';
+  document.querySelectorAll('.grav-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('gravBox').style.display='none';
+  const b=document.getElementById('btnStep1'); b.disabled=true; b.style.opacity='.4';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
