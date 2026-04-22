@@ -460,7 +460,7 @@ function calcular() {
 
 function fmt(v,d=4){
   if(v===null||v===undefined||isNaN(v)) return '—';
-  return Number(v).toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
+  return Number(v).toFixed(d);
 }
 
 function reiniciar(){
